@@ -1,40 +1,28 @@
 use std::env::args;
-use git2::{BranchType, Error, Repository, Sort};
 
-fn main() -> Result<(), Error> {
-    let repo_url = args().nth(1).expect("git repository url is not provided");
+use repo::{error::RepositoryError, Repository, comparer::compare_commits};
 
-    let mut branch_refs: Vec<(String, String)> = Vec::new();
-    let mut oids: Vec<String> = Vec::new();
-    let repo = Repository::clone(repo_url.as_str(), "test")?;
-    let mut revwalk = repo.revwalk()?;
-    revwalk.set_sorting(Sort::TIME)?;
-    revwalk.push_glob("refs/*")?;
-    for oid in &mut revwalk {
-        oids.push(oid?.to_string());
-    }
+pub mod repo;
 
-    let branches = repo.branches(Some(BranchType::Remote))?;
-    for b in branches {
-        let (branch, _) = b?;
-        let refr = branch.get();
-        let object = refr.peel(git2::ObjectType::Commit)?;
-        let branch_commit = object.as_commit().unwrap();
+fn main() -> Result<(), RepositoryError> {
+    let repo_url_a = args()
+        .nth(1)
+        .expect("first git repository url is not provided");
+    let repo_url_b = args()
+        .nth(2)
+        .expect("second git repository url is not provided");
 
-        let ref_oid = branch_commit.id().to_string();
-        let ref_name = refr.name().unwrap();
+    let mut repo_a = Repository::new(repo_url_a.as_str());
+    repo_a.clone_to_dir()?;
+    let mut repo_b = Repository::new(repo_url_b.as_str());
+    repo_b.clone_to_dir()?;
 
-        (&mut branch_refs).push((ref_oid, ref_name.to_string()));
-    }
+    let commits_a = &mut repo_a.get_all_commits()?.into_iter().collect();
+    let commits_b =  &mut repo_b.get_all_commits()?.into_iter().collect();
+    let diff = compare_commits(commits_a, commits_b);
 
-    (&mut oids).into_iter().for_each(|id| {
-        let ref_name = (&mut branch_refs)
-            .into_iter()
-            .filter(|r| r.0 == *id)
-            .map(|m| m.1.to_string())
-            .next()
-            .unwrap_or("".to_string());
-        println!("{} - {}", id, ref_name);
+    diff.into_iter().for_each(|c| {
+        println!("{:?}", c);
     });
 
     Ok(())
