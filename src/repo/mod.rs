@@ -24,14 +24,14 @@ impl Repository {
         }
     }
 
-    pub fn clone_to_dir(&mut self) -> Result<(), error::RepositoryError> {
+    pub async fn clone_to_dir(&mut self) -> Result<(), error::RepositoryError> {
         let repo = Repository_git2::clone(self.url.as_str(), format!("repo_{}", self.hash_url))
             .map_err(|e| e.to_repository_error())?;
         self.repo = Some(repo);
         Ok(())
     }
 
-    pub fn get_all_commits(&self) -> Result<HashSet<String>, error::RepositoryError> {
+    pub async fn get_all_commits(&self) -> Result<HashSet<String>, error::RepositoryError> {
         let mut commits: HashSet<String> = HashSet::new();
         let mut revwalk = self
             .repo
