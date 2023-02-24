@@ -1,10 +1,11 @@
+pub mod commit;
 pub mod comparer;
 pub mod error;
 
-use self::error::ToRepositoryError;
-use git2::{Repository as Repository_git2, Sort};
-use uuid::Uuid;
+use self::{commit::Commit, error::ToRepositoryError};
+use git2::{Oid, Repository as Repository_git2, Sort};
 use std::collections::HashSet;
+use uuid::Uuid;
 
 pub struct Repository {
     pub url: String,
@@ -53,5 +54,23 @@ impl Repository {
         }
 
         Ok(commits)
+    }
+
+    pub fn get_commits_details(&self, commits: &Vec<String>) -> Vec<Commit> {
+        commits
+            .iter()
+            .map(|commit_id| {
+                let commit_data = &self
+                    .repo
+                    .as_ref()
+                    .unwrap()
+                    .find_commit(Oid::from_str(&commit_id).unwrap())
+                    .unwrap();
+                Commit {
+                    id: commit_id.into(),
+                    time: commit_data.time().seconds(),
+                }
+            })
+            .collect()
     }
 }

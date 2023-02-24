@@ -1,11 +1,11 @@
 use std::env::args;
 
-use repo::{error::RepositoryError, Repository, comparer::compare_commits};
+use repo::{comparer::compare_commits, error::RepositoryError, Repository};
 use tokio::time::Instant;
 
+use crate::repo::comparer::CommitDiff;
+
 pub mod repo;
-
-
 
 #[tokio::main]
 async fn main() -> Result<(), RepositoryError> {
@@ -23,15 +23,39 @@ async fn main() -> Result<(), RepositoryError> {
     res_a?;
     res_b?;
 
-    let (commits_a_res, commits_b_res) = tokio::join!(repo_a.get_all_commits(), repo_b.get_all_commits());
+    let (commits_a_res, commits_b_res) =
+        tokio::join!(repo_a.get_all_commits(), repo_b.get_all_commits());
     let commits_a = &mut commits_a_res?.into_iter().collect();
-    let commits_b =  &mut commits_b_res?.into_iter().collect();
+    let commits_b = &mut commits_b_res?.into_iter().collect();
     let diff = compare_commits(commits_a, commits_b);
     let duration = time.elapsed();
 
-    diff.into_iter().for_each(|c| {
+    // take not same
+    let mut left_oids: Vec<String> = vec!();
+    let mut right_oids: Vec<String> = vec!();
+    diff
+        .iter()
+        .filter(|commit_diff| !matches!(**commit_diff, CommitDiff::SAME(_)))
+        .map(|commit_diff| commit_diff.clone())
+        .for_each(|commit_diff| { 
+            match commit_diff {
+            CommitDiff::LEFT(id) => left_oids.push(id),
+            CommitDiff::RIGHT(id) =>  right_oids.push(id),
+            _ => unreachable!("other than LEFT or RIGHT should not exists"),
+        }});
+
+    let left_commits = repo_a.get_commits_details(&left_oids);
+    let right_commits = repo_b.get_commits_details(&right_oids);
+
+    println!("left commits");
+    left_commits.into_iter().for_each(|c| {
         println!("{:?}", c);
     });
+    println!("right commits");
+    right_commits.into_iter().for_each(|c| {
+        println!("{:?}", c);
+    });
+
     println!("Duration: {}", duration.as_millis());
 
     Ok(())
