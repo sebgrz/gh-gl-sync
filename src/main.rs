@@ -1,4 +1,4 @@
-use std::env::args;
+use std::{env::args, time::Duration};
 
 use repo::{comparer::compare_commits, error::RepositoryError, Repository};
 use tokio::time::Instant;
@@ -15,10 +15,13 @@ async fn main() -> Result<(), RepositoryError> {
     let repo_url_b = args()
         .nth(2)
         .expect("second git repository url is not provided");
+    let ssh_path = args()
+        .nth(3)
+        .expect("repos ssh private key path is required");
 
     let time = Instant::now();
-    let mut repo_a = Repository::new(repo_url_a.as_str());
-    let mut repo_b = Repository::new(repo_url_b.as_str());
+    let mut repo_a = Repository::new(&repo_url_a, &ssh_path);
+    let mut repo_b = Repository::new(&repo_url_b, &ssh_path);
     let (res_a, res_b) = tokio::join!(repo_a.clone_to_dir(), repo_b.clone_to_dir());
     res_a?;
     res_b?;
@@ -58,5 +61,10 @@ async fn main() -> Result<(), RepositoryError> {
 
     println!("Duration: {}", duration.as_millis());
 
+    let mut repo_mirror = Repository::new(&repo_url_a, &ssh_path);
+    repo_mirror.clone_mirror_to_dir()?;
+    repo_mirror.push_mirror_to_repo(&repo_url_b)?;
+
+     tokio::time::sleep(Duration::from_secs(2)).await;
     Ok(())
 }
