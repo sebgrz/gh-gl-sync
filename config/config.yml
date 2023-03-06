@@ -1,0 +1,13 @@
+provider:
+  github:
+    hostname: github.com
+    https: true
+    username: test
+    token: token
+    private_ssh_key: /home/test/.ssh/github.pkey 
+  gitlab:
+    hostname: gitlab.com
+    https: true
+    username: test
+    token: token
+    private_ssh_key: /home/test/.ssh/gitlab.pkey 

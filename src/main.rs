@@ -1,14 +1,25 @@
 use std::{env::args, time::Duration};
 
-use repo::{comparer::compare_commits, error::RepositoryError, Repository};
+use gh_gl_sync::{
+    config,
+    repo::{comparer::compare_commits, comparer::CommitDiff, error::RepositoryError, Repository},
+};
 use tokio::time::Instant;
 
-use crate::repo::comparer::CommitDiff;
-
-pub mod repo;
-
 #[tokio::main]
-async fn main() -> Result<(), RepositoryError> {
+async fn main() {
+    let config_file_path = args()
+        .nth(1)
+        .expect("path to the configuration is required");
+
+    let config = config::load(&config_file_path).unwrap_or_else(|e| {
+        panic!("{:?}", e);
+    });
+    println!("{config:?}");
+}
+
+#[warn(dead_code)]
+async fn main_old() -> Result<(), RepositoryError> {
     let repo_url_a = args()
         .nth(1)
         .expect("first git repository url is not provided");
@@ -34,18 +45,16 @@ async fn main() -> Result<(), RepositoryError> {
     let duration = time.elapsed();
 
     // take not same
-    let mut left_oids: Vec<String> = vec!();
-    let mut right_oids: Vec<String> = vec!();
-    diff
-        .iter()
+    let mut left_oids: Vec<String> = vec![];
+    let mut right_oids: Vec<String> = vec![];
+    diff.iter()
         .filter(|commit_diff| !matches!(**commit_diff, CommitDiff::SAME(_)))
         .map(|commit_diff| commit_diff.clone())
-        .for_each(|commit_diff| { 
-            match commit_diff {
+        .for_each(|commit_diff| match commit_diff {
             CommitDiff::LEFT(id) => left_oids.push(id),
-            CommitDiff::RIGHT(id) =>  right_oids.push(id),
+            CommitDiff::RIGHT(id) => right_oids.push(id),
             _ => unreachable!("other than LEFT or RIGHT should not exists"),
-        }});
+        });
 
     let left_commits = repo_a.get_commits_details(&left_oids);
     let right_commits = repo_b.get_commits_details(&right_oids);
@@ -65,6 +74,6 @@ async fn main() -> Result<(), RepositoryError> {
     repo_mirror.clone_mirror_to_dir()?;
     repo_mirror.push_mirror_to_repo(&repo_url_b)?;
 
-     tokio::time::sleep(Duration::from_secs(2)).await;
+    tokio::time::sleep(Duration::from_secs(2)).await;
     Ok(())
 }
