@@ -1,10 +1,10 @@
 use std::{env::args, time::Duration};
 
 use gh_gl_sync::{
-    config,
-    repo::{comparer::compare_commits, comparer::CommitDiff, error::RepositoryError, Repository}, handlers,
+    config, handlers,
+    repo::{comparer::compare_commits, comparer::CommitDiff, error::RepositoryError, Repository},
 };
-use rouille::{Response, router, Request};
+use rouille::{router, Request, Response};
 use tokio::time::Instant;
 
 #[tokio::main]
@@ -26,7 +26,6 @@ async fn main() {
         resp
     });
 }
-
 
 #[warn(dead_code)]
 async fn main_old() -> Result<(), RepositoryError> {
