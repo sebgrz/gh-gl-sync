@@ -2,8 +2,9 @@ use std::{env::args, time::Duration};
 
 use gh_gl_sync::{
     config,
-    repo::{comparer::compare_commits, comparer::CommitDiff, error::RepositoryError, Repository},
+    repo::{comparer::compare_commits, comparer::CommitDiff, error::RepositoryError, Repository}, handlers,
 };
+use rouille::{Response, router, Request};
 use tokio::time::Instant;
 
 #[tokio::main]
@@ -15,8 +16,17 @@ async fn main() {
     let config = config::load(&config_file_path).unwrap_or_else(|e| {
         panic!("{:?}", e);
     });
-    println!("{config:?}");
+
+    rouille::start_server("0.0.0.0:3000", move |req| {
+        let resp = router!(req,
+            (POST) (/add-project) => { handlers::add_project_to_sync(&req) },
+            _ => Response::empty_404()
+        );
+
+        resp
+    });
 }
+
 
 #[warn(dead_code)]
 async fn main_old() -> Result<(), RepositoryError> {
