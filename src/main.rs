@@ -1,7 +1,7 @@
 use std::{env::args, rc::Rc, sync::Arc, time::Duration};
 
 use gh_gl_sync::{
-    config, handlers,
+    config, db, handlers,
     providers::Providers,
     repo::{comparer::compare_commits, comparer::CommitDiff, error::RepositoryError, Repository},
 };
@@ -17,6 +17,9 @@ async fn main() {
     let config = config::load(&config_file_path).unwrap_or_else(|e| {
         panic!("{:?}", e);
     });
+
+    db::migrate().await;
+
     let providers = Arc::new(Providers::new(&config).await);
     let runtime = Runtime::new().unwrap();
 

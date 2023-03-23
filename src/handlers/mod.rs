@@ -16,6 +16,9 @@ pub async fn add_project_to_sync(providers: Arc<Providers>, req: &Request) -> Re
     Response::text("ok")
 }
 
+/// Fetch list of projects from both providers
+/// and then save them to the database.
+/// If project exists, ignore it.
 pub async fn sync_providers_projects(providers: Arc<Providers>) {
     let github = &providers.providers[&ProviderType::GITHUB];
     let gh_projects = github.get_all_projects().await.unwrap_or_else(|e| {
