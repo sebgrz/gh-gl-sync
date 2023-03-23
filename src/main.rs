@@ -1,11 +1,12 @@
-use std::{env::args, time::Duration};
+use std::{env::args, rc::Rc, sync::Arc, time::Duration};
 
 use gh_gl_sync::{
-    config,
-    repo::{comparer::compare_commits, comparer::CommitDiff, error::RepositoryError, Repository}, handlers,
+    config, handlers,
+    providers::Providers,
+    repo::{comparer::compare_commits, comparer::CommitDiff, error::RepositoryError, Repository},
 };
-use rouille::{Response, router, Request};
-use tokio::time::Instant;
+use rouille::{router, Response};
+use tokio::{runtime::Runtime, time::Instant};
 
 #[tokio::main]
 async fn main() {
@@ -16,17 +17,30 @@ async fn main() {
     let config = config::load(&config_file_path).unwrap_or_else(|e| {
         panic!("{:?}", e);
     });
+    let providers = Arc::new(Providers::new(&config).await);
+    let runtime = Runtime::new().unwrap();
 
     rouille::start_server("0.0.0.0:3000", move |req| {
         let resp = router!(req,
-            (POST) (/add-project) => { handlers::add_project_to_sync(&req) },
+            (POST) (/add-project) => {
+                runtime.block_on(handlers::add_project_to_sync(providers.clone(), req))
+            },
+            (GET) (/sync-projects) => {
+                runtime.spawn(handlers::sync_providers_projects(providers.clone()));
+                Response::text("ok")
+            },
+            (GET) (/test/gh/create-project) => {
+                runtime.block_on(handlers::create_gh_repo(providers.clone()))
+            },
+            (GET) (/test/gl/create-project) => {
+                runtime.block_on(handlers::create_gl_repo(providers.clone()))
+            },
             _ => Response::empty_404()
         );
 
         resp
     });
 }
-
 
 #[warn(dead_code)]
 async fn main_old() -> Result<(), RepositoryError> {
