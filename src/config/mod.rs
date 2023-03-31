@@ -5,7 +5,16 @@ use serde_yaml;
 
 #[derive(Debug, PartialEq, Deserialize)]
 pub struct Config {
-    pub provider: Provider,
+    pub database: Database,
+    pub provider: Provider
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+pub struct Database {
+    pub host: String,
+    pub username: String,
+    pub password: String,
+    pub db: String,
 }
 
 #[derive(Debug, PartialEq, Deserialize)]

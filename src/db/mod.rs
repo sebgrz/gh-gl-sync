@@ -1,18 +1,24 @@
 use tokio_postgres::NoTls;
 
+use crate::config::Database;
+
 mod embedded_migration {
     use refinery::embed_migrations;
     embed_migrations!("./db/migrations");
 }
 
-pub async fn migrate() {
+pub async fn migrate(config: &Database) {
     let (mut client, connection) = tokio_postgres::connect(
-        "host=localhost user=user password=password dbname=gh-gl-sync connect_timeout=10",
+        format!(
+            "host={} user={} password={} dbname={} connect_timeout=10",
+            config.host, config.username, config.password, config.db
+        )
+        .as_str(),
         NoTls,
     )
     .await
     .unwrap();
-    
+
     tokio::spawn(async {
         connection.await.unwrap();
         println!("end migration connection");

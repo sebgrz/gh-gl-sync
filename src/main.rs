@@ -18,7 +18,7 @@ async fn main() {
         panic!("{:?}", e);
     });
 
-    db::migrate().await;
+    db::migrate(&config.database).await;
 
     let providers = Arc::new(Providers::new(&config).await);
     let runtime = Runtime::new().unwrap();
