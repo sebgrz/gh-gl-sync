@@ -6,7 +6,7 @@ use serde_yaml;
 #[derive(Debug, PartialEq, Deserialize)]
 pub struct Config {
     pub database: Database,
-    pub provider: Provider
+    pub provider: Provider,
 }
 
 #[derive(Debug, PartialEq, Deserialize)]

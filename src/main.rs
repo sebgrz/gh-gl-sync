@@ -1,7 +1,9 @@
-use std::{env::args, rc::Rc, sync::Arc, time::Duration};
+use std::{env::args, sync::Arc, time::Duration};
 
 use gh_gl_sync::{
-    config, db, handlers,
+    config,
+    db::{self, DB},
+    handlers,
     providers::Providers,
     repo::{comparer::compare_commits, comparer::CommitDiff, error::RepositoryError, Repository},
 };
@@ -18,7 +20,8 @@ async fn main() {
         panic!("{:?}", e);
     });
 
-    db::migrate(&config.database).await;
+    let mut db = DB::new(&config.database).await;
+    db.migrate().await;
 
     let providers = Arc::new(Providers::new(&config).await);
     let runtime = Runtime::new().unwrap();
